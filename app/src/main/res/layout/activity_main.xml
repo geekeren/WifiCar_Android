@@ -1,24 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="cn.wangbaiyuan.wificar.MainActivity">
 
 
-    <ImageView
-        android:id="@+id/video"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true" />
-
     <LinearLayout
         android:id="@+id/camera_err"
         android:layout_width="180dp"
         android:layout_height="120dp"
-        android:layout_centerInParent="true"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="50dp"
         android:alpha="0.8"
         android:background="#f0222222"
         android:gravity="center_horizontal"
@@ -34,7 +29,38 @@
             android:layout_height="wrap_content"
             android:text="摄像头未连接！"
             android:textColor="#aa0000" />
+
+        <ImageView
+            android:id="@+id/video"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true" />
     </LinearLayout>
+
+    <com.anderson.dashboardview.view.DashboardView
+        android:id="@+id/speedDashBoard"
+        android:layout_width="180dp"
+        android:layout_height="180dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="20dp"
+        android:alpha="0.7"
+        android:text="当前速度"
+        app:startProgressColor="@color/colorProgressStart"
+        app:centerCircleColor="@color/colorPrimary"
+        app:endProgressColor="@color/colorProgressEnd"
+        app:maxNumber="150"
+        app:progressStrokeWidth="6dp"
+        app:startNumber="0"
+
+        app:textColor="@android:color/white"
+        app:tikeStrArray="@array/speed"
+        app:tikeStrColor="@color/colorAccent"
+        app:tikeStrSize="16dp"
+        app:unit="x" />
+
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -78,7 +104,7 @@
             android:src="@drawable/ic_left" />
 
         <ImageButton
-            android:id="@+id/btnStop"
+            android:id="@+id/btnDirectMid"
             android:layout_width="@dimen/btn_size"
             android:layout_height="@dimen/btn_size"
             android:layout_column="1"
@@ -102,28 +128,30 @@
             android:src="@drawable/ic_back" />
     </GridLayout>
 
+
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentRight="true"
         android:layout_alignTop="@id/ctrlDirection"
         android:layout_marginRight="40dp"
-        android:layout_marginTop="20dp"
 
-        android:orientation="vertical"
-        android:visibility="gone">
+
+        android:orientation="horizontal">
+        <ImageButton
+            android:id="@+id/btnStop"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginRight="20dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/ic_pause" />
 
         <ImageButton
             android:id="@+id/btn_faster"
             android:layout_width="60dp"
-            android:layout_height="60dp"
+            android:layout_height="180dp"
             android:src="@drawable/ic_faster" />
 
-        <ImageButton
-            android:id="@+id/btn_slower"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:src="@drawable/ic_slower" />
     </LinearLayout>
 
     <LinearLayout
@@ -145,30 +173,33 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="指令灯 "/>
+            android:layout_gravity="center"
+            android:layout_marginTop="5dp">
 
             <ImageView
                 android:id="@+id/send_signal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:src="@drawable/ic_bright_off" />
+
+            <TextView
+                android:id="@+id/cmd_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:text="指令灯 " />
+
         </LinearLayout>
 
+        <TextView
+            android:background="#1feeeeee"
+            android:textSize="10dp"
+            android:padding="5dp"
+            android:id="@+id/car_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="" />
+
     </LinearLayout>
-    <TextView
-        android:padding="6dp"
-        android:background="#555f8797"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:layout_margin="20dp"
-        android:layout_marginTop="20dp"
-        android:id="@+id/cmd_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="待发送指令"/>
+
 </RelativeLayout>

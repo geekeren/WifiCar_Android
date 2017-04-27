@@ -1,4 +1,12 @@
 <resources>
     <string name="app_name">视觉辅助导航</string>
     <string name="title_activity_main2">Main2Activity</string>
+    <string-array name="speed">
+        <item>0</item>
+        <item>30</item>
+        <item>60</item>
+        <item>90</item>
+        <item>120</item>
+        <item>150</item>
+    </string-array>
 </resources>
