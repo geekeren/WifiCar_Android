@@ -1,24 +1,28 @@
 package cn.wangbaiyuan.wificar;
 
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.support.design.widget.TextInputEditText;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.view.GestureDetector;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.anderson.dashboardview.view.DashboardView;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -34,10 +38,11 @@ public class MainActivity extends AppCompatActivity {
 
     ImageView videoView;
     Bitmap image;
-    public String IP = "192.168.8.1";
-    public int ctrlPort = 2001;
+    public String IP = "192.168.1.109";
+    public int ctrlPort = 8880;
     private boolean foreGround = true;
     private Handler handlerMsg;
+    private HandlerThread uiThread;
     private HandlerThread cmdThread;
     private HandlerThread videoThread;
     private Runnable videoRunnable;
@@ -48,6 +53,10 @@ public class MainActivity extends AppCompatActivity {
 
     private ImageButton btnFaster;
     private ImageButton btnDirectMid;
+    private Socket socket;
+    private int videoPort = 8090;
+    private SharedPreferences sharedPreferences;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,16 +64,55 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         videoView = (ImageView) findViewById(R.id.video);
         speedDashBoard = (DashboardView) findViewById(R.id.speedDashBoard);
-        speedDashBoard.setPercent(carVector.speed * 100 / carVector.maxSpeed);
+        speedDashBoard.setPercent(carVector.speed * 100.0f / carVector.maxSpeed);
 
         final LinearLayout camera_err = (LinearLayout) findViewById(R.id.camera_err);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         toolbar.setTitle("基于机器视觉的智能车辆辅助导航系统");
         toolbar.setLogo(R.mipmap.ic_launcher);
+        LayoutInflater inflater = getLayoutInflater();
+        final View setting_view = inflater.inflate(R.layout.setting_dialog, null);
+        final TextInputEditText ip = (TextInputEditText) setting_view.findViewById(R.id.edit_ip);
+        final TextInputEditText contrl = (TextInputEditText) setting_view.findViewById(R.id.edit_ctrl_port);
+        final TextInputEditText video = (TextInputEditText) setting_view.findViewById(R.id.edit_video_port);
+        sharedPreferences = getSharedPreferences("car_setting", MODE_PRIVATE);
+        IP = sharedPreferences.getString("ip", "192.168.1.109");
+        ctrlPort = sharedPreferences.getInt("ctrlPort", 8880);
+        videoPort = sharedPreferences.getInt("videoPort", 8090);
+
+
+        final AlertDialog settingdialog = new AlertDialog.Builder(MainActivity.this)
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        IP = ip.getText().toString();
+                        ctrlPort = Integer.parseInt(contrl.getText().toString());
+                        videoPort = Integer.parseInt(video.getText().toString());
+                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                        editor.putInt("ctrlPort", ctrlPort);
+                        editor.putInt("videoPort", videoPort);
+                        editor.putString("ip", IP);
+                        editor.commit();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .setTitle("设置")
+                .setView(setting_view)
+                .create();
+        toolbar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ip.setText(IP);
+                contrl.setText(ctrlPort + "");
+                video.setText(videoPort + "");
+                settingdialog.show();
+            }
+        });
         setSupportActionBar(toolbar);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         sendSignal = (ImageView) findViewById(R.id.send_signal);
         carStatus = (TextView) findViewById(R.id.car_status);
+        uiThread = new HandlerThread("uiThread");
         cmdThread = new HandlerThread("cmdThread");
         videoThread = new HandlerThread("videoThread");
         handlerMsg = new Handler() {
@@ -98,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
                         sendSignal.setImageDrawable(getResources().getDrawable(R.drawable.ic_bright_err));
                         break;
                     case 3:
-                        speedDashBoard.setPercent(carVector.speed * 100 / carVector.maxSpeed);
+                        speedDashBoard.setPercent((carVector.speed * 100.0f / carVector.maxSpeed));
                         carStatus.setText(carVector.getString());
                 }
 
@@ -107,6 +155,7 @@ public class MainActivity extends AppCompatActivity {
 
         };
         videoThread.start();
+        uiThread.start();
         cmdThread.start();
         videoRunnable = new Runnable() {
             @Override
@@ -119,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
 //                        carVector.update(carVector.angle, carVector.isForWard, carVector.speed - 1);
 //                    }
                     try {
-                        image = getImageBitmap("http://192.168.8.1:8083/?action=snapshot");
+                        image = getImageBitmap("http://" + IP + ":" + videoPort + "/?action=snapshot");
                         if (image != null)
                             handlerMsg.sendEmptyMessage(200);
 
@@ -168,7 +217,7 @@ public class MainActivity extends AppCompatActivity {
 
                 if (beginY - endY > minMove && Math.abs(velocityY) > Math.abs(velocityX)) {  //上滑
                     carVector.update(carVector.angle, carVector.isForWard, carVector.speed + 1);
-                } else if (endY - beginY > minMove &&  Math.abs(velocityY) > Math.abs(velocityX)) {  //下滑
+                } else if (endY - beginY > minMove && Math.abs(velocityY) > Math.abs(velocityX)) {  //下滑
                     carVector.update(carVector.angle, carVector.isForWard, carVector.speed - 1);
                 }
 
@@ -247,7 +296,7 @@ public class MainActivity extends AppCompatActivity {
 
                         break;
                     case R.id.btnStop:
-//                        sendCmd("e");
+//                        startSendCmdService("e");
                         carVector.update(carVector.angle, true, 0);
                         break;
 
@@ -269,39 +318,42 @@ public class MainActivity extends AppCompatActivity {
                 handlerMsg.sendEmptyMessage(3);
             }
         });
+
+        startSendCmdService();
     }
 
     private void signalShine(boolean hasErr) {
-        final int cmd = hasErr ? 2 : 1;
-        final Handler handler = new Handler(cmdThread.getLooper());
+        final int cmdWhat = hasErr ? 2 : 1;
+        final Handler handler = new Handler(uiThread.getLooper());
 
         Runnable shine = new Runnable() {
             @Override
             public void run() {
 
 
-                try {
+//                try {
 
-                    handlerMsg.sendEmptyMessage(cmd);
-                    sleep(400);
-                    handlerMsg.sendEmptyMessage(0);
-                    sleep(300);
-                    handlerMsg.sendEmptyMessage(cmd);
-                    sleep(200);
-                    handlerMsg.sendEmptyMessage(0);
-                    sleep(250);
-                    handlerMsg.sendEmptyMessage(cmd);
-                    sleep(200);
-                    handlerMsg.sendEmptyMessage(0);
-                    sleep(250);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                handlerMsg.sendEmptyMessage(cmdWhat);
+//                    sleep(400);
+//                    handlerMsg.sendEmptyMessage(0);
+//                    sleep(300);
+//                    handlerMsg.sendEmptyMessage(cmdWhat);
+//                    sleep(200);
+//                    handlerMsg.sendEmptyMessage(0);
+//                    sleep(250);
+//                    handlerMsg.sendEmptyMessage(cmdWhat);
+//                    sleep(200);
+//                    handlerMsg.sendEmptyMessage(0);
+//                    sleep(250);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
 
 
-                handlerMsg.sendEmptyMessage(0);
+//                handlerMsg.sendEmptyMessage(0);
             }
         };
+
         handler.post(shine);
 
     }
@@ -344,24 +396,57 @@ public class MainActivity extends AppCompatActivity {
         return bitmap;
     }
 
-    public void sendCmd(final String cmd) {
+    public static byte[] intToBytes(int value) {
+        byte[] src = new byte[4];
+        src[3] = (byte) ((value >> 24) & 0xFF);
+        src[2] = (byte) ((value >> 16) & 0xFF);
+        src[1] = (byte) ((value >> 8) & 0xFF);
+        src[0] = (byte) (value & 0xFF);
+        return src;
+    }
 
-        final Handler handler = new Handler(cmdThread.getLooper());
-        Runnable sendCmdRunable = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Socket socket = new Socket(IP, ctrlPort);
-                    DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-                    out.writeChar(cmd.toCharArray()[0]);
+    private long sendRate = 20;//20ms更新，50HZ
+    /**
+     * 发送小车状态数据
+     */
+    Runnable sendCmdRunable = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                socket = new Socket(IP, ctrlPort);
+                DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+                while (true) {
+                    out.write(intToBytes(carVector.getCmd()));
                     handlerMsg.sendEmptyMessage(201);
+                    try {
+                        sleep(sendRate);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+
+
+            } catch (IOException e) {
+                handlerMsg.sendEmptyMessage(501);
+                e.printStackTrace();
+            } finally {
+                try {
                     socket.close();
-                } catch (IOException e) {
-                    handlerMsg.sendEmptyMessage(501);
-                    e.printStackTrace();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
                 }
             }
-        };
+        }
+    };
+
+    /**
+     * 发送小车状态数据
+     */
+    public void startSendCmdService() {
+
+        final Handler handler = new Handler(cmdThread.getLooper());
         handler.post(sendCmdRunable);
+
     }
 }

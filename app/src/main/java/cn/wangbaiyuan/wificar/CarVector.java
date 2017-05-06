@@ -11,7 +11,7 @@ public class CarVector {
 
     public int maxAngle = 150;
     public int minAngle = 30;
-    public int maxSpeed =150;
+    public int maxSpeed = 150;
 
     public void setCarVectorChangeListener(CarVectorChangeListener carVectorChangeListener) {
         this.carVectorChangeListener = carVectorChangeListener;
@@ -49,6 +49,20 @@ public class CarVector {
 
     public interface CarVectorChangeListener {
         public abstract void onChange(CarVector newVector);
+    }
+
+    public int getCmd() {
+        int code = 1;//命令代号
+        int cmd = ((code << 17) | (angle << 9) | ((isForWard ? 1 : 0) << 8) | speed) << 11;
+        return cmd;
+    }
+
+    public static CarVector fromCmd(final int mCmd) {
+        int cmd = mCmd >> 11;
+        int speed = cmd & 0b11111111;
+        int direction = (cmd >> 8) & 1;
+        int angle = (cmd >> 9) & 0b11111111;
+        return new CarVector(angle, direction == 1, speed);
     }
 
 }
